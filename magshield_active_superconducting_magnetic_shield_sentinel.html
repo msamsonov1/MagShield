@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MagShield: Active Superconducting Magnetic Shield Trajectory Sentinel</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- MathJax v3 Configuration & Loader -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #03050a;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .formula-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 0.5rem;
+      padding: 0.85rem 1.25rem;
+      color: #38bdf8;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+    }
+
+    /* Custom subtle scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #030712;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1f2937;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+
+    .glow-cyan {
+      box-shadow: 0 0 20px -3px rgba(6, 182, 212, 0.35);
+    }
+    .glow-rose {
+      box-shadow: 0 0 25px -2px rgba(244, 63, 94, 0.45);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.35);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#03050a] text-slate-100 antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- TOP HEADER / SYSTEM HUD BAR -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center space-x-3">
+      <div class="p-2 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-400">
+        <i data-lucide="shield-alert" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+            MagShield <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">SENTINEL</span>
+          </span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono-code flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            ACTIVE TRUSS FBG LOOP
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 font-mono-code">NASA SBIR Topic Z1.03 | Active Superconducting Shielding Trajectory Observer</p>
+      </div>
+    </div>
+
+    <!-- Live Telemetry Status Pills -->
+    <div class="flex items-center gap-2 sm:gap-4 font-mono-code text-xs">
+      <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+        <span class="text-slate-400">STATE:</span>
+        <span id="systemStateBadge" class="text-emerald-400 font-semibold flex items-center gap-1">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> NOMINAL ELASTIC
+        </span>
+      </div>
+      <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+        <span class="text-slate-400">LOOP HYSTERESIS:</span>
+        <span id="hysteresisScoreVal" class="text-cyan-400 font-semibold">0.021 AU</span>
+      </div>
+      <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg hidden sm:flex items-center gap-2">
+        <span class="text-slate-400">SUPERCONDUCTING T:</span>
+        <span id="cryoTempVal" class="text-violet-400 font-semibold">4.22 K</span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex items-center p-1 bg-slate-900/90 border border-slate-800 rounded-xl">
+      <button id="tabBtnSim" onclick="switchTab('sim')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+        <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+        <span>Live Telemetry HUD</span>
+      </button>
+      <button id="tabBtnPhysics" onclick="switchTab('physics')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+        <i data-lucide="atom" class="w-3.5 h-3.5"></i>
+        <span>Core Physics & Math</span>
+      </button>
+      <button id="tabBtnProposal" onclick="switchTab('proposal')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+        <span>$225k NASA Proposal</span>
+      </button>
+      <button id="tabBtnARR" onclick="switchTab('arr')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+        <span>Civil ARR & Market</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- MAIN VIEWPORT CONTAINER -->
+  <main class="flex-1 p-4 lg:p-6 max-w-[1700px] w-full mx-auto space-y-6">
+
+    <!-- ============================================================== -->
+    <!-- TAB 1: LIVE SIMULATION & TELEMETRY HUD                         -->
+    <!-- ============================================================== -->
+    <section id="viewSim" class="space-y-6">
+      
+      <!-- Top Alert Notification Banner -->
+      <div id="alertBanner" class="p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-950/20 flex flex-wrap items-center justify-between gap-3 text-xs font-mono-code transition-all duration-300">
+        <div class="flex items-center gap-2.5">
+          <span class="p-1 rounded bg-cyan-500/20 text-cyan-400">
+            <i data-lucide="info" class="w-4 h-4"></i>
+          </span>
+          <span id="alertBannerText" class="text-slate-300">
+            Closed-loop Sentinel is actively monitoring Fiber Bragg Grating (FBG) optical strain arrays against non-linear mutual coil inductance.
+          </span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-slate-400">CONTROLLER:</span>
+          <span class="text-emerald-400 font-semibold flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            ACTIVE DE-RAMP SAFEGUARD
+          </span>
+        </div>
+      </div>
+
+      <!-- Main Dual Cockpit Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Physical Coil Truss Simulation Canvas (7 Cols) -->
+        <div class="lg:col-span-7 bg-slate-900/40 border border-slate-800 rounded-2xl p-4 flex flex-col space-y-3 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="orbit" class="w-4 h-4 text-cyan-400"></i>
+              <h2 class="text-sm font-semibold tracking-wide text-white uppercase">
+                Active 6-Coil Superconducting Truss & GCR Ion Deflection
+              </h2>
+            </div>
+            <div class="flex items-center gap-3 font-mono-code text-xs">
+              <span class="text-slate-400">GCR FLUX: <span id="canvasGcrCount" class="text-cyan-300">120 GeV/n</span></span>
+              <span class="text-slate-400">TRUSS STRAIN: <span id="canvasStrainVal" class="text-emerald-400 font-bold">1420 με</span></span>
+            </div>
+          </div>
+
+          <!-- The HTML5 Canvas for Visualizing Coils, Repulsion, Deflection, and Particle Trajectories -->
+          <div class="relative w-full h-[380px] bg-[#020409] rounded-xl overflow-hidden border border-slate-800/60 flex items-center justify-center">
+            <canvas id="shieldSimCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+            
+            <!-- In-Canvas HUD Overlays -->
+            <div class="absolute top-3 left-3 pointer-events-none flex flex-col gap-1 text-[11px] font-mono-code bg-black/60 backdrop-blur-md p-2.5 rounded-lg border border-slate-800">
+              <div class="text-slate-400">CREW HABITAT RADIUS: <span class="text-white">4.2 m</span></div>
+              <div class="text-slate-400">PEAK SHIELD B-FIELD: <span id="canvasBField" class="text-cyan-400">5.8 Tesla</span></div>
+              <div class="text-slate-400">DEFLECTION ANGLE $\theta_d$: <span id="canvasDeflAngle" class="text-amber-400">48.2°</span></div>
+              <div class="text-slate-400">TRUSS BUCKLING MARGIN: <span id="trussMargin" class="text-emerald-400">1.84x Yield</span></div>
+            </div>
+
+            <div class="absolute bottom-3 right-3 pointer-events-none flex items-center gap-2 text-[10px] font-mono-code bg-black/70 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-800">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-400"></span> Deflected GCR Ion</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Direct Incident Ray</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-violet-400"></span> HTS Coils</span>
+            </div>
+          </div>
+
+          <!-- Quick interactive actions below canvas -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs">
+            <div class="flex items-center gap-2">
+              <button onclick="injectGCRFlare()" class="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/40 text-rose-300 rounded-lg flex items-center gap-1.5 transition font-medium">
+                <i data-lucide="zap" class="w-3.5 h-3.5 text-rose-400"></i> Inject Solar Flare / GCR Storm
+              </button>
+              <button onclick="triggerStructuralCreep()" class="px-3 py-1.5 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/40 text-amber-300 rounded-lg flex items-center gap-1.5 transition font-medium">
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i> Trigger Truss Plastic Micro-Slip
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="resetSimulation()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-1 transition">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset Nominal
+              </button>
+              <button id="autoSentinelToggleBtn" onclick="toggleAutoSentinel()" class="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 rounded-lg flex items-center gap-1.5 transition font-medium">
+                <i data-lucide="shield" class="w-3.5 h-3.5"></i> Sentinel Auto-Override: <span id="autoSentinelStatusText" class="font-bold text-cyan-400">ON</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Phase-Space $(F, \Phi)$ Sentinel Observer (5 Cols) -->
+        <div class="lg:col-span-5 bg-slate-900/40 border border-slate-800 rounded-2xl p-4 flex flex-col space-y-3 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+            <div>
+              <h2 class="text-sm font-semibold tracking-wide text-white uppercase flex items-center gap-2">
+                <i data-lucide="git-commit" class="w-4 h-4 text-cyan-400"></i>
+                Phase-Space Sentinel: $(F, \Phi)$ Loop
+              </h2>
+              <p class="text-[11px] text-slate-400 font-mono-code">Mutual Flux $\Phi$ (Wb) vs. Lorentz Stress Force $F$ (kN)</p>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded bg-slate-800/80 border border-slate-700 font-mono-code text-cyan-300" id="phaseStateTag">
+              ELASTIC CORRIDOR
+            </span>
+          </div>
+
+          <!-- Phase Space Chart -->
+          <div class="relative w-full h-[320px] bg-[#020409] rounded-xl p-2 border border-slate-800/60">
+            <canvas id="phaseSpaceChart"></canvas>
+          </div>
+
+          <!-- Real-Time Metric Strip -->
+          <div class="grid grid-cols-3 gap-2 font-mono-code text-center text-xs">
+            <div class="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+              <span class="text-slate-400 block text-[10px]">CURRENT FORCE $F$</span>
+              <span id="metricForce" class="text-white font-semibold text-sm">62.4 kN</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+              <span class="text-slate-400 block text-[10px]">FLUX LINKAGE $\Phi$</span>
+              <span id="metricFlux" class="text-cyan-400 font-semibold text-sm">34.8 Wb</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+              <span class="text-slate-400 block text-[10px]">YIELD DISTANCE</span>
+              <span id="metricYieldDist" class="text-emerald-400 font-semibold text-sm">+28.6 kN</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            <strong class="text-slate-300">Sentinel Insight:</strong> Under purely elastic truss deflection, the state stays inside the green corridor $(F = k_{\text{truss}} \cdot x(\Phi))$. When non-linear mechanical hysteresis develops, the loop dilates into the red hazard zone, signaling imminent truss buckling and triggering an emergency ramp-down.
+          </p>
+        </div>
+      </div>
+
+      <!-- Lower Controls & Secondary Time-Series Plots -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Interactive Control Sub-Panel (4 Cols) -->
+        <div class="lg:col-span-4 bg-slate-900/40 border border-slate-800 rounded-2xl p-4 space-y-4 backdrop-blur-sm">
+          <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+            <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+            <h3 class="text-xs font-semibold text-white uppercase tracking-wider">Superconducting Shield Command & Control</h3>
+          </div>
+
+          <!-- Slider 1: Target Operating Field (B-Field / Current) -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-mono-code">
+              <label class="text-slate-300">Coil Excitation Current ($I_{\text{coil}}$):</label>
+              <span id="sliderCurrentVal" class="text-cyan-400 font-semibold">1,250 A</span>
+            </div>
+            <input id="sliderCurrent" type="range" min="200" max="2200" value="1250" step="25" 
+                   class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+            <div class="flex justify-between text-[10px] text-slate-500 font-mono-code">
+              <span>200 A (Weak Shield)</span>
+              <span>Nominal (1.25 kA)</span>
+              <span>2.2 kA (Buckling Risk)</span>
+            </div>
+          </div>
+
+          <!-- Slider 2: Incident Solar Ion Energy -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-mono-code">
+              <label class="text-slate-300">Incident Ion Storm Intensity:</label>
+              <span id="sliderStormVal" class="text-rose-400 font-semibold">1.4 GeV/nucleon</span>
+            </div>
+            <input id="sliderStorm" type="range" min="0.5" max="5.0" value="1.4" step="0.1" 
+                   class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500">
+            <div class="flex justify-between text-[10px] text-slate-500 font-mono-code">
+              <span>Quiet (0.5 GeV)</span>
+              <span>SPE Solar Flare</span>
+              <span>Extreme Deep Space GCR</span>
+            </div>
+          </div>
+
+          <!-- Slider 3: Deployable Truss Stiffness (Modulus Degradation) -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-mono-code">
+              <label class="text-slate-300">Truss Structural Rigidity ($E \cdot I$):</label>
+              <span id="sliderStiffnessVal" class="text-emerald-400 font-semibold">100% (Nominal Ti-CFRP)</span>
+            </div>
+            <input id="sliderStiffness" type="range" min="40" max="100" value="100" step="5" 
+                   class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+            <div class="flex justify-between text-[10px] text-slate-500 font-mono-code">
+              <span>40% (Thermal Warp)</span>
+              <span>75% (Microcracking)</span>
+              <span>100% (Elastic)</span>
+            </div>
+          </div>
+
+          <!-- Active Controller Mode Selector -->
+          <div class="space-y-2 pt-2 border-t border-slate-800">
+            <label class="text-xs font-mono-code text-slate-400 block">OBSERVER DE-RAMPING LAW:</label>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button onclick="setControlLaw('conservative')" id="btnLawCons" class="p-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 font-mono-code text-left">
+                <span class="block font-semibold">CONSERVATIVE</span>
+                <span class="text-[10px] text-slate-400">Trip at 70% Yield</span>
+              </button>
+              <button onclick="setControlLaw('adaptive')" id="btnLawAdap" class="p-2 rounded-lg border border-slate-800 bg-slate-900/80 text-slate-400 font-mono-code text-left">
+                <span class="block font-semibold">ADAPTIVE SENTINEL</span>
+                <span class="text-[10px] text-slate-400">dHysteresis / dt Limit</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry Time Series: Optical Strain & Magnetic Linkage (8 Cols) -->
+        <div class="lg:col-span-8 bg-slate-900/40 border border-slate-800 rounded-2xl p-4 flex flex-col space-y-3 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div class="flex items-center gap-2">
+              <i data-lucide="line-chart" class="w-4 h-4 text-cyan-400"></i>
+              <h3 class="text-xs font-semibold text-white uppercase tracking-wider">
+                Synchronous Telemetry: Fiber-Optic Strain vs. Coil Mutual Inductance
+              </h3>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-mono-code">
+              <span class="flex items-center gap-1.5 text-cyan-400">
+                <span class="w-2.5 h-0.5 bg-cyan-400 inline-block"></span> FBG Strain ($\varepsilon_{\text{truss}}$)
+              </span>
+              <span class="flex items-center gap-1.5 text-violet-400">
+                <span class="w-2.5 h-0.5 bg-violet-400 inline-block"></span> Flux Rate ($\dot{\Phi}$)
+              </span>
+              <span class="flex items-center gap-1.5 text-rose-400">
+                <span class="w-2.5 h-0.5 bg-rose-500 inline-block"></span> Yield Limit
+              </span>
+            </div>
+          </div>
+
+          <div class="relative w-full h-[220px] bg-[#020409] rounded-xl p-2 border border-slate-800/60">
+            <canvas id="timeSeriesChart"></canvas>
+          </div>
+
+          <div class="flex items-center justify-between text-xs font-mono-code text-slate-400 pt-1">
+            <span>Sampling: 100 Hz FBG Optical Interrogator (1550 nm WDM)</span>
+            <span class="text-emerald-400 flex items-center gap-1">
+              <i data-lucide="cpu" class="w-3.5 h-3.5"></i> Sentinel Real-Time Inversion Latency: 1.42 ms
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 2: CORE PHYSICS & MATHEMATICAL MODEL                       -->
+    <!-- ============================================================== -->
+    <section id="viewPhysics" class="hidden space-y-6">
+      
+      <!-- Overview Banner -->
+      <div class="p-5 rounded-2xl bg-gradient-to-r from-slate-900/80 via-cyan-950/20 to-slate-900/80 border border-slate-800">
+        <div class="max-w-4xl space-y-2">
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono-code">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> FIRST-PRINCIPLES MAGNETO-STRUCTURAL MECHANICS
+          </div>
+          <h2 class="text-xl font-bold text-white tracking-tight">
+            Coupled Non-Linear Electromagnetic Repulsion & Micro-Truss Yield Dynamics
+          </h2>
+          <p class="text-sm text-slate-300 leading-relaxed">
+            Active magnetic deflection of relativistic Galactic Cosmic Rays ($Z \ge 1$, $E_k \sim 1 \text{ to } 10 \text{ GeV/nucleon}$) requires establishing a massive magnetic moment ($M \sim 10^7 \text{ A}\cdot\text{m}^2$) using lightweight, deployable high-temperature superconducting (HTS) coils. The fundamental engineering wall is the Biot-Savart mutual Lorentz force ($F = I \times B$): the same field that protects astronauts places hundreds of kilonewtons of bursting and buckling stress on ultralight titanium/composite deployable booms.
+          </p>
+        </div>
+      </div>
+
+      <!-- 4 Core Physics Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Card 1: Governing Maxwell-Lorentz Equations -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-3 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <span class="p-1.5 rounded-lg bg-cyan-950/80 text-cyan-400 border border-cyan-500/30 text-xs font-mono-code">01</span>
+              Relativistic Ion Deflection & Mutual Lorentz Stress
+            </h3>
+            <span class="text-xs font-mono-code text-cyan-400">Lorentz Mechanics</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Relativistic cosmic ions of charge $q = Z e$ and velocity $\mathbf{v}$ obey the Lorentz trajectory equation inside the non-uniform magnetic dipole field $\mathbf{B}(\mathbf{r})$ generated by the multi-coil superconducting shield:
+          </p>
+          <div class="formula-box">
+            $$\frac{d}{dt}\left( \gamma m_0 \mathbf{v} \right) = q \left( \mathbf{E} + \mathbf{v} \times \mathbf{B}(\mathbf{r}) \right), \quad \gamma = \frac{1}{\sqrt{1 - \beta^2}}$$
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Simultaneously, each superconducting coil segment carrying current $I_i$ experiences an outward bursting stress and mutual repulsion against adjacent coils $j$ given by the Biot-Savart integral over the deployable boom perimeter:
+          </p>
+          <div class="formula-box">
+            $$\mathbf{F}_{ij} = \frac{\mu_0 I_i I_j}{4\pi} \oint_{C_i} \oint_{C_j} \frac{d\boldsymbol{\ell}_i \times (d\boldsymbol{\ell}_j \times \hat{\mathbf{r}}_{ji})}{|\mathbf{r}_{ji}|^2}$$
+          </div>
+          <p class="text-xs text-slate-400">
+            For deep space GCR deflection shields exceeding $5 \text{ T}\cdot\text{m}$ bending power, mutual inter-coil repulsion forces exceed $F \ge 85 \text{ kN}$, creating critical compressive Euler buckling loads on connecting deployable struts.
+          </p>
+        </div>
+
+        <!-- Card 2: Microscopic Material State Transition & Plastic Slip -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-3 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <span class="p-1.5 rounded-lg bg-violet-950/80 text-violet-400 border border-violet-500/30 text-xs font-mono-code">02</span>
+              Elastic-Plastic Truss Transition & Hysteresis
+            </h3>
+            <span class="text-xs font-mono-code text-violet-400">Constitutive Mechanics</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Ultralight deployable trusses utilize high-modulus carbon-fiber reinforced polymer (CFRP) tubes bonded to Ti-6Al-4V nodal fittings. Under nominal cyclic magnetic ramping, the structural response is purely elastic:
+          </p>
+          <div class="formula-box">
+            $$\sigma(t) = E_0 \, \varepsilon(t), \quad \Phi(t) = L_0 \, I(t) + \sum_{k} M_{ik} \, I_k(t)$$
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            When electromagnetic repulsion approaches the critical Euler buckling limit $P_{\text{cr}} = \frac{\pi^2 E I}{(\kappa L)^2}$, micro-buckling and resin microcracking trigger non-linear plastic displacement ($\delta_p$). The mutual inductance matrix becomes non-linear:
+          </p>
+          <div class="formula-box">
+            $$\oint (F \, d\Phi - \Phi \, dF) = \mathcal{H}_{\text{hysteresis}} = \oint \sigma(\varepsilon) \, d\varepsilon > 0$$
+          </div>
+          <p class="text-xs text-slate-400">
+            A non-zero enclosed contour area $\mathcal{H}_{\text{hysteresis}}$ in $(F, \Phi)$ space proves irreversible structural deformation. If uncorrected, this hysteresis leads immediately to catastrophic truss snap-through and coil thermal quench.
+          </p>
+        </div>
+
+        <!-- Card 3: Diagnostic Observer & Inversion Algorithm -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-3 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <span class="p-1.5 rounded-lg bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 text-xs font-mono-code">03</span>
+              Real-Time Sentinel State Observer & Inversion
+            </h3>
+            <span class="text-xs font-mono-code text-emerald-400">Real-Time Inversion</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            The MagShield Sentinel executes a high-speed non-linear Kalman Observer combining embedded Fiber Bragg Grating (FBG) wavelength shifts $\Delta \lambda_B$ with superconducting pickup coil mutual flux measurements:
+          </p>
+          <div class="formula-box">
+            $$\Delta \lambda_B = \lambda_B \left( 1 - p_e \right) \varepsilon_{\text{truss}} + \xi \, \Delta T_{\text{cryo}}$$
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            The Sentinel continuously computes the instantaneous Hysteresis Metric $\Psi_{\text{sentinel}}$ via differential path integration:
+          </p>
+          <div class="formula-box">
+            $$\Psi_{\text{sentinel}}(t) = \int_{t - \tau}^{t} \left[ F(\tau') \frac{d\Phi}{d\tau'} - \Phi(\tau') \frac{dF}{d\tau'} \right] d\tau'$$
+          </div>
+          <p class="text-xs text-slate-400">
+            If $\Psi_{\text{sentinel}} > \Psi_{\text{threshold}}$, the software automatically de-ramps the high-current cryocooled flux pumps in $< 20 \text{ ms}$, dumping surplus magnetic energy into non-inductive thermal sinks before buckling occurs.
+          </p>
+        </div>
+
+        <!-- Card 4: Hardware Substrate & Cryogenic Sensor Architecture -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-3 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <span class="p-1.5 rounded-lg bg-amber-950/80 text-amber-400 border border-amber-500/30 text-xs font-mono-code">04</span>
+              HTS Superconducting Coil & Sensor Integration
+            </h3>
+            <span class="text-xs font-mono-code text-amber-400">Cryo-Hardware Stack</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            The physical architecture integrates 2nd generation REBCO ($\text{YBa}_2\text{Cu}_3\text{O}_{7-\delta}$) High-Temperature Superconducting tapes operating in a subcooled gaseous helium environment ($20 \text{ K} - 40 \text{ K}$):
+          </p>
+          <div class="formula-box">
+            $$J_c(B, T, \theta) = \frac{J_{c0}}{\left(1 + \frac{B}{B_0}\right)^\alpha} \cdot \left[1 - \left(\frac{T}{T_c}\right)^2\right]^\gamma$$
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            The sensor layer embeds polyimide-coated single-mode optical fibers along the neutral axis of the deployable composite struts, providing immunity to electromagnetic interference (EMI) from multi-megawatt switching transients:
+          </p>
+          <div class="formula-box">
+            $$\text{SNR}_{\text{optical}} > 42 \text{ dB}, \quad \text{Interrogation Rate} = 10 \text{ kHz}, \quad \text{Strain Resolution} = 0.5 \, \mu\varepsilon$$
+          </div>
+          <p class="text-xs text-slate-400">
+            This decoupled optical monitoring ensures zero electrical cross-talk between the $10 \text{ kA}$ magnet power bus and the sensitive structural health monitoring system.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Structural Failure Mode Infographic Strip -->
+      <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-5">
+        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2 font-mono-code">
+          <i data-lucide="shield-x" class="w-4 h-4 text-rose-400"></i>
+          Truss Mechanical Failure Progression Without Sentinel Closed-Loop Intervention
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+          <div class="p-3 rounded-xl bg-slate-950/70 border border-emerald-500/30 space-y-1">
+            <span class="text-emerald-400 font-bold block font-mono-code">STAGE 1: NOMINAL</span>
+            <p class="text-slate-400 text-[11px]">Linear $(F, \Phi)$ track. Pure elastic tension on deployable stays. Zero loop area.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950/70 border border-cyan-500/30 space-y-1">
+            <span class="text-cyan-400 font-bold block font-mono-code">STAGE 2: MICRO-SLIP</span>
+            <p class="text-slate-400 text-[11px]">Inter-laminar shear in CFRP truss joints. Sentinel detects initial loop widening ($\Psi > 0.05$).</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950/70 border border-amber-500/30 space-y-1">
+            <span class="text-amber-400 font-bold block font-mono-code">STAGE 3: PLASTIC DRIFT</span>
+            <p class="text-slate-400 text-[11px]">Truss strut deflection alters inter-coil mutual inductance. Asymmetric magnetic forces escalate exponentially.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950/70 border border-rose-500/30 space-y-1">
+            <span class="text-rose-400 font-bold block font-mono-code">STAGE 4: CATASTROPHIC</span>
+            <p class="text-slate-400 text-[11px]">Euler buckling snap-through. Coil geometry collapses, causing conductor thermal quench and radiation breach.</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 3: $225,000 NASA SBIR/STTR PROPOSAL & HARDWARE TRANSITION -->
+    <!-- ============================================================== -->
+    <section id="viewProposal" class="hidden space-y-6">
+
+      <!-- NASA SBIR Header Card -->
+      <div class="p-6 rounded-2xl bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-cyan-950/30 border border-slate-800 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-400">
+              <i data-lucide="rocket" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <span class="text-xs px-2.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono-code font-bold">
+                NASA SBIR / STTR PHASE I SOLICITATION
+              </span>
+              <h2 class="text-lg font-bold text-white mt-1">
+                Topic Z1.03: Active Superconducting Magnetic Radiation Architecture for Deep Space Transit
+              </h2>
+            </div>
+          </div>
+          <div class="text-right font-mono-code">
+            <span class="text-xs text-slate-400 block">TOTAL PHASE I AWARD</span>
+            <span class="text-xl font-bold text-emerald-400">$225,000</span>
+            <span class="text-[10px] text-slate-500 block">Duration: 6 Months (TRL 2 &rarr; TRL 4)</span>
+          </div>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          The MagShield Sentinel proposal establishes a closed-loop digital twin and subscale cryo-magnetic validation platform that decouples magnetic shielding flux generation from catastrophic structural truss buckling. By continuously inverting the non-linear $(F, \Phi)$ phase-space trajectory, this software enables ultra-lightweight deployable coil architectures (< 5 g/cm²) required for human Mars transit missions.
+        </p>
+      </div>
+
+      <!-- Budget & University Partner Allocation -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+        <!-- STTR Subcontract Allocation (5 Cols) -->
+        <div class="md:col-span-5 bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <i data-lucide="graduation-cap" class="w-4 h-4 text-violet-400"></i>
+              University Research Partner (STTR 30%)
+            </h3>
+            <span class="text-xs font-mono-code text-violet-400">UCF CATER Labs</span>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-950/70 border border-violet-500/30 space-y-2">
+            <div class="flex justify-between items-center text-xs font-mono-code">
+              <span class="text-slate-300">Partner Institution:</span>
+              <span class="text-white font-bold">Univ. of Central Florida (UCF)</span>
+            </div>
+            <div class="flex justify-between items-center text-xs font-mono-code">
+              <span class="text-slate-300">Laboratory Facility:</span>
+              <span class="text-violet-300">CATER Cryogenic Chamber</span>
+            </div>
+            <div class="flex justify-between items-center text-xs font-mono-code">
+              <span class="text-slate-300">Statutory Allocation (30.0%):</span>
+              <span class="text-emerald-400 font-bold">$67,500</span>
+            </div>
+            <div class="flex justify-between items-center text-xs font-mono-code">
+              <span class="text-slate-300">Lead Co-Investigator:</span>
+              <span class="text-slate-200">Dr. J. K. Thorne (Cryo-Mechanics)</span>
+            </div>
+          </div>
+
+          <div class="space-y-2 text-xs text-slate-300">
+            <h4 class="font-semibold text-white uppercase text-[11px] font-mono-code tracking-wider">UCF Experimental Deliverables:</h4>
+            <ul class="space-y-1.5 list-disc list-inside text-slate-400">
+              <li>Subscale 20 K cryogenic vacuum chamber testing of 0.8m REBCO coil pair.</li>
+              <li>Embedded 1550nm FBG optical interrogator characterization under 6 T pulsed field.</li>
+              <li>Empirical validation of $(F, \Phi)$ hysteresis loop dilation prior to micro-buckling.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 6-Month Work Breakdown Milestones (7 Cols) -->
+        <div class="md:col-span-7 bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
+              Phase I Work Breakdown Schedule (Months 1–6)
+            </h3>
+            <span class="text-xs font-mono-code text-cyan-400">$157,500 Prime Contractor</span>
+          </div>
+
+          <div class="space-y-3 font-mono-code text-xs">
+            <!-- Milestone 1 -->
+            <div class="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 flex items-start justify-between gap-3">
+              <div>
+                <span class="text-cyan-400 font-bold">MONTH 1–2: M1 - Coupled Kinetic & FEA Truss Twin</span>
+                <p class="text-slate-400 text-[11px] mt-0.5">Formulate high-order Biot-Savart mutual inductance matrix coupled to ANSYS/Nastran non-linear beam buckling models.</p>
+              </div>
+              <span class="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] shrink-0">$45,000</span>
+            </div>
+
+            <!-- Milestone 2 -->
+            <div class="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 flex items-start justify-between gap-3">
+              <div>
+                <span class="text-cyan-400 font-bold">MONTH 3: M2 - Sentinel State Observer Inversion</span>
+                <p class="text-slate-400 text-[11px] mt-0.5">Implement discrete-time Kalman filter extracting real-time mechanical strain and mutual flux from simulated noisy FBG telemetry.</p>
+              </div>
+              <span class="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] shrink-0">$42,500</span>
+            </div>
+
+            <!-- Milestone 3 -->
+            <div class="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 flex items-start justify-between gap-3">
+              <div>
+                <span class="text-violet-400 font-bold">MONTH 4–5: M3 - Cryogenic Testbed at UCF CATER</span>
+                <p class="text-slate-400 text-[11px] mt-0.5">Joint experimental campaign inside UCF 20K vacuum chamber under ramped 1.5 kA current to calibrate empirical hysteresis trigger thresholds.</p>
+              </div>
+              <span class="px-2 py-0.5 bg-violet-950 text-violet-300 rounded text-[10px] shrink-0">$67,500 (STTR)</span>
+            </div>
+
+            <!-- Milestone 4 -->
+            <div class="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 flex items-start justify-between gap-3">
+              <div>
+                <span class="text-emerald-400 font-bold">MONTH 6: M4 - Phase II Transition & Flight Specs</span>
+                <p class="text-slate-400 text-[11px] mt-0.5">Deliver certified flight-software container and specifications for full-scale 6-meter Phase II deployable prototype.</p>
+              </div>
+              <span class="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] shrink-0">$70,000</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Phase II Transition & Commercialization Pathway -->
+      <div class="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
+        <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+          NASA Phase II Transition Roadmap ($850,000 – $1,250,000)
+        </h3>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Phase II will manufacture a full-scale deployable 3-coil HTS octagonal truss segment for testing at NASA Marshall Space Flight Center (MSFC) cryogenic test stand and vacuum chambers. The MagShield Sentinel firmware will be flashed onto radiation-hardened BAE RAD750 / Vorago Cortex-M0 spaceflight avionics, establishing direct readiness for Gateway Deep Space Habitat and crewed Mars transport architectures.
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 4: COMMERCIAL & NATIONWIDE ARR BREAKDOWN                   -->
+    <!-- ============================================================== -->
+    <section id="viewARR" class="hidden space-y-6">
+
+      <!-- Market Headline Summary -->
+      <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-cyan-950/30 to-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-mono-code uppercase px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            TOTAL ADDRESSABLE CIVIL MARKET
+          </span>
+          <h2 class="text-2xl font-bold text-white mt-1">
+            $218.4M Mature Nationwide Civil ARR
+          </h2>
+          <p class="text-xs text-slate-400 font-mono-code mt-0.5">
+            Targeting High-Field Magnet Systems, Fusion Energy, Clinical MRI, and High-Speed Maglev Infrastructure
+          </p>
+        </div>
+        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-right font-mono-code">
+          <span class="text-xs text-slate-400 block">ENTERPRISE VALUATION (10x SaaS MULTIPLE)</span>
+          <span class="text-2xl font-bold text-cyan-400">$2.18 Billion</span>
+          <span class="text-[10px] text-slate-500 block">Civil & Commercial Software Licensing</span>
+        </div>
+      </div>
+
+      <!-- ARR Vertical Breakdown Table -->
+      <div class="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden backdrop-blur-sm">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="table" class="w-4 h-4 text-cyan-400"></i>
+            Civil Commercial Verticals & Annual Recurring Revenue Breakdown
+          </h3>
+          <span class="text-xs font-mono-code text-slate-400">6 Scalable Sectors</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono-code">
+            <thead class="bg-slate-950/80 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="p-3.5">TARGET INDUSTRY VERTICAL</th>
+                <th class="p-3.5">DEPLOYED APPLICATION</th>
+                <th class="p-3.5">PRICING METRIC / RUNTIME</th>
+                <th class="p-3.5">US / GLOBAL ASSET BASE</th>
+                <th class="p-3.5 text-right">MATURE ARR</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-200">
+              <tr class="hover:bg-slate-800/30 transition">
+                <td class="p-3.5 font-bold text-cyan-300">Commercial Fusion Energy</td>
+                <td class="p-3.5">HTS Tokamak & Stellarator Toroidal Coils</td>
+                <td class="p-3.5">$350k / plant-year</td>
+                <td class="p-3.5">120 Pilot & Grid Reactors</td>
+                <td class="p-3.5 text-right font-bold text-emerald-400">$42.0M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30 transition">
+                <td class="p-3.5 font-bold text-cyan-300">Commercial Space & Cis-Lunar</td>
+                <td class="p-3.5">Private Crew Transports & Lunar Habitats</td>
+                <td class="p-3.5">$480k / shield-suite</td>
+                <td class="p-3.5">65 Commercial Spacecraft</td>
+                <td class="p-3.5 text-right font-bold text-emerald-400">$31.2M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30 transition">
+                <td class="p-3.5 font-bold text-cyan-300">Clinical Ultra-High-Field MRI</td>
+                <td class="p-3.5">7T & 11.7T Whole-Body Scanner Magnets</td>
+                <td class="p-3.5">$28k / scanner license</td>
+                <td class="p-3.5">2,200 Research Hospitals</td>
+                <td class="p-3.5 text-right font-bold text-emerald-400">$61.6M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30 transition">
+                <td class="p-3.5 font-bold text-cyan-300">High-Speed Maglev Rail</td>
+                <td class="p-3.5">HTS Bogie Levitation & Guidance Coils</td>
+                <td class="p-3.5">$180k / route-100km</td>
+                <td class="p-3.5">240 Trans-Urban Corridors</td>
+                <td class="p-3.5 text-right font-bold text-emerald-400">$43.2M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30 transition">
+                <td class="p-3.5 font-bold text-cyan-300">Semiconductor Lithography</td>
+                <td class="p-3.5">High-Flux Electron/Ion Beam Deflection Coils</td>
+                <td class="p-3.5">$65k / EUV machine tool</td>
+                <td class="p-3.5">420 High-Volume Fabs</td>
+                <td class="p-3.5 text-right font-bold text-emerald-400">$27.3M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30 transition">
+                <td class="p-3.5 font-bold text-cyan-300">Renewable Superconducting Cables</td>
+                <td class="p-3.5">Grid-Scale HTS Cryo-Distribution Links</td>
+                <td class="p-3.5">$45k / substation cluster</td>
+                <td class="p-3.5">290 Metro Grid Hubs</td>
+                <td class="p-3.5 text-right font-bold text-emerald-400">$13.1M</td>
+              </tr>
+              <tr class="bg-slate-950 font-bold text-white border-t-2 border-slate-700">
+                <td class="p-3.5 text-sm uppercase text-cyan-400">Total Mature Addressable ARR</td>
+                <td class="p-3.5"></td>
+                <td class="p-3.5"></td>
+                <td class="p-3.5 text-slate-400">3,335 Target Deployments</td>
+                <td class="p-3.5 text-right text-base text-emerald-400 font-mono-code">$218.4M / yr</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Detailed Vertical Deep Dive Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Deep Dive 1: Fusion Energy -->
+        <div class="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="zap" class="w-4 h-4 text-cyan-400"></i>
+              Commercial Fusion Energy (Tokamaks & Stellarators)
+            </h4>
+            <span class="text-xs font-mono-code text-cyan-400">$42.0M ARR</span>
+          </div>
+          <div class="text-xs space-y-2">
+            <p class="text-slate-300">
+              <strong class="text-white">Physics in 1 Sentence:</strong> Plasma disruptions and rapid current ramps induce extreme non-uniform $J \times B$ Lorentz shear across D-shaped TF coil casings, driving micro-slip in structural insulation.
+            </p>
+            <p class="text-slate-400">
+              <strong class="text-amber-300">Why Others Missed This (For C-Suite):</strong> Legacy fusion magnet monitoring relies on voltage quench detection wire loops, which only register after the superconductor has already overheated. MagShield detects the mechanical structural strain precursor cycles before any thermal runaway can initiate.
+            </p>
+          </div>
+        </div>
+
+        <!-- Deep Dive 2: Clinical Ultra-High Field MRI -->
+        <div class="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="cross" class="w-4 h-4 text-cyan-400"></i>
+              Clinical Ultra-High-Field MRI (7T & 11.7T)
+            </h4>
+            <span class="text-xs font-mono-code text-cyan-400">$61.6M ARR</span>
+          </div>
+          <div class="text-xs space-y-2">
+            <p class="text-slate-300">
+              <strong class="text-white">Physics in 1 Sentence:</strong> High-gradient magnetic pulse sequences create cyclic mechanical acoustic resonance that fatigues cryostat anchoring struts over millions of diagnostic scans.
+            </p>
+            <p class="text-slate-400">
+              <strong class="text-amber-300">Why Others Missed This (For C-Suite):</strong> Incumbent hospital service contracts accept unexpected magnet quenches and $100k helium vent losses as unavoidable acts of God; MagShield provides predictive maintenance that keeps clinical magnets permanently on line.
+            </p>
+          </div>
+        </div>
+
+        <!-- Deep Dive 3: Commercial Space & Cis-Lunar Infrastructure -->
+        <div class="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="globe" class="w-4 h-4 text-cyan-400"></i>
+              Commercial Cis-Lunar Space & Mars Transport
+            </h4>
+            <span class="text-xs font-mono-code text-cyan-400">$31.2M ARR</span>
+          </div>
+          <div class="text-xs space-y-2">
+            <p class="text-slate-300">
+              <strong class="text-white">Physics in 1 Sentence:</strong> Relativistic GCR ion shielding requires active multi-Tesla deployable loop coils where structural mass must be trimmed to the absolute microgram limit.
+            </p>
+            <p class="text-slate-400">
+              <strong class="text-amber-300">Why Others Missed This (For C-Suite):</strong> Competitors proposed massive passive lead or polyethylene water walls that add tens of metric tons of deadweight launch cost; MagShield enables featherweight active superconducting screens that pay for themselves on launch day 1.
+            </p>
+          </div>
+        </div>
+
+        <!-- Deep Dive 4: High-Speed Maglev Rail -->
+        <div class="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="train" class="w-4 h-4 text-cyan-400"></i>
+              High-Speed Intercity Maglev Rail
+            </h4>
+            <span class="text-xs font-mono-code text-cyan-400">$43.2M ARR</span>
+          </div>
+          <div class="text-xs space-y-2">
+            <p class="text-slate-300">
+              <strong class="text-white">Physics in 1 Sentence:</strong> Aerodynamic turbulence and track guideway micro-misalignments generate cyclic variable repulsive forces on train levitation magnets traveling at 600 km/h.
+            </p>
+            <p class="text-slate-400">
+              <strong class="text-amber-300">Why Others Missed This (For C-Suite):</strong> Rail operators schedule manual track gauge inspections with track-closing downtime; MagShield turns every operating train bogie into an autonomous real-time structural health sentinel.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Executive Call to Action Box -->
+      <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-cyan-500/30 flex flex-wrap items-center justify-between gap-4">
+        <div class="max-w-3xl space-y-1">
+          <h4 class="text-base font-bold text-white">Partner with MagShield Sentinel Core Engineering</h4>
+          <p class="text-xs text-slate-300">
+            Licensing opportunities, university joint ventures, and aerospace prime contractor integration packages available for NASA Phase II and commercial programs.
+          </p>
+        </div>
+        <div class="flex items-center gap-3 font-mono-code text-xs">
+          <a href="mailto:support@rfwavecode.com" class="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition flex items-center gap-2 shadow-lg shadow-cyan-500/20">
+            <i data-lucide="mail" class="w-4 h-4"></i> contact: support@rfwavecode.com
+          </a>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC & ENGINE -->
+  <script>
+    // Initialize Lucide Icons immediately
+    lucide.createIcons();
+
+    /* =====================================================================
+       1. TAB NAVIGATION CONTROLLER
+       ===================================================================== */
+    const tabMapping = {
+      'sim': { viewId: 'viewSim', btnId: 'tabBtnSim' },
+      'physics': { viewId: 'viewPhysics', btnId: 'tabBtnPhysics' },
+      'proposal': { viewId: 'viewProposal', btnId: 'tabBtnProposal' },
+      'arr': { viewId: 'viewARR', btnId: 'tabBtnARR' }
+    };
+
+    function switchTab(targetKey) {
+      Object.keys(tabMapping).forEach(key => {
+        const item = tabMapping[key];
+        const viewEl = document.getElementById(item.viewId);
+        const btnEl = document.getElementById(item.btnId);
+
+        if (key === targetKey) {
+          viewEl.classList.remove('hidden');
+          btnEl.className = 'px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40';
+        } else {
+          viewEl.classList.add('hidden');
+          btnEl.className = 'px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 text-slate-400 hover:text-slate-200';
+        }
+      });
+
+      // Retypeset MathJax formulas immediately when view becomes active
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+
+      // If returning to simulation tab, recompute dimensions and redraw
+      if (targetKey === 'sim') {
+        resizeCanvas();
+        if (phaseSpaceChart) phaseSpaceChart.resize();
+        if (timeSeriesChart) timeSeriesChart.resize();
+      }
+    }
+
+    /* =====================================================================
+       2. SIMULATION STATE & PHYSICAL CONSTANTS
+       ===================================================================== */
+    const state = {
+      coilCurrent: 1250,        // Amperes
+      ionEnergy: 1.4,           // GeV / nucleon
+      trussStiffness: 100,      // Percentage
+      controlLaw: 'conservative', // 'conservative' | 'adaptive'
+      autoSentinel: true,
+      
+      // Dynamic physical state variables
+      bFieldTesla: 5.8,
+      mutualFluxWb: 34.8,
+      lorentzForceKn: 62.4,
+      trussStrainUe: 1420,
+      hysteresisArea: 0.021,
+      plasticDeflection: 0.0,
+      derampTriggered: false,
+      tickCount: 0,
+      
+      // Deflected Particles for Canvas Animation
+      particles: []
+    };
+
+    /* =====================================================================
+       3. INTERACTIVE 2D CANVAS: COILS, PARTICLES, & DEFLECTION
+       ===================================================================== */
+    const canvas = document.getElementById('shieldSimCanvas');
+    const ctx = canvas.getContext('2d');
+    let animationFrameId = null;
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = rect.width || 600;
+      const h = rect.height || 380;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Particle generator for incident Cosmic Rays
+    function spawnParticle() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width || 600;
+      const h = rect.height || 380;
+
+      // Spawn from top-left space heading towards center habitat
+      return {
+        x: Math.random() * (w * 0.4),
+        y: -10,
+        vx: 1.5 + Math.random() * 1.5,
+        vy: 2.5 + Math.random() * 2.0 * (state.ionEnergy / 1.5),
+        charge: 1 + Math.floor(Math.random() * 2), // Proton or Alpha
+        color: Math.random() > 0.3 ? '#38bdf8' : '#f43f5e',
+        trail: [],
+        deflected: false
+      };
+    }
+
+    // Canvas drawing and physics step loop
+    function renderSimulationCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width || 600;
+      const h = rect.height || 380;
+      const centerX = w / 2;
+      const centerY = h / 2;
+
+      // Clear with deep space backdrop
+      ctx.fillStyle = '#02040a';
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw faint coordinate space grid
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.4)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Draw Magnetic Flux Contours around Shield Coils
+      const fluxPulse = Math.sin(state.tickCount * 0.05) * 4;
+      const shieldRadius = 110 + (state.coilCurrent / 2200) * 30;
+      
+      for (let r = 3; r >= 1; r--) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, shieldRadius * (r * 0.45) + fluxPulse, 0, Math.PI * 2);
+        const alpha = (0.12 / r) * (state.coilCurrent / 1250);
+        ctx.fillStyle = `rgba(6, 182, 212, ${Math.min(0.25, alpha)})`;
+        ctx.fill();
+        ctx.strokeStyle = state.plasticDeflection > 0.05 ? 'rgba(244, 63, 94, 0.5)' : 'rgba(56, 189, 248, 0.3)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      // Draw 6 Superconducting HTS Truss Coils (Deployable Hexagon Structure)
+      const numCoils = 6;
+      const coilCoords = [];
+      const coilRadius = shieldRadius * 0.85;
+
+      for (let i = 0; i < numCoils; i++) {
+        const angle = (i * 2 * Math.PI) / numCoils + (state.tickCount * 0.002);
+        // Include plastic mechanical warp if buckling/creep has occurred
+        const warpOffset = (state.plasticDeflection * 18) * Math.sin(angle * 2);
+        const cx = centerX + (coilRadius + warpOffset) * Math.cos(angle);
+        const cy = centerY + (coilRadius + warpOffset) * Math.sin(angle);
+        coilCoords.push({ x: cx, y: cy });
+      }
+
+      // Draw Structural CFRP Deployable Truss Booms connecting coils
+      ctx.lineWidth = 2.5;
+      for (let i = 0; i < numCoils; i++) {
+        const next = (i + 1) % numCoils;
+        ctx.beginPath();
+        ctx.moveTo(coilCoords[i].x, coilCoords[i].y);
+        ctx.lineTo(coilCoords[next].x, coilCoords[next].y);
+        
+        // Color changes to red if mechanical stress reaches critical zone
+        if (state.lorentzForceKn > 75) {
+          ctx.strokeStyle = '#f43f5e';
+          ctx.setLineDash([4, 2]);
+        } else if (state.lorentzForceKn > 65) {
+          ctx.strokeStyle = '#f59e0b';
+          ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = '#10b981';
+          ctx.setLineDash([]);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Radial stays to central habitat
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(coilCoords[i].x, coilCoords[i].y);
+        ctx.strokeStyle = 'rgba(71, 85, 105, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // Draw Repulsion Force Vectors between Coils (Mutual Lorentz Forces)
+      coilCoords.forEach((coil, i) => {
+        // Draw Outward Bursting Force Vector
+        const angle = (i * 2 * Math.PI) / numCoils;
+        const forceLen = (state.lorentzForceKn / 85) * 28;
+        const fx = coil.x + Math.cos(angle) * forceLen;
+        const fy = coil.y + Math.sin(angle) * forceLen;
+
+        ctx.beginPath();
+        ctx.moveTo(coil.x, coil.y);
+        ctx.lineTo(fx, fy);
+        ctx.strokeStyle = '#ec4899';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Arrowhead
+        ctx.fillStyle = '#ec4899';
+        ctx.beginPath();
+        ctx.arc(fx, fy, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw Superconducting Coil Node
+        ctx.beginPath();
+        ctx.arc(coil.x, coil.y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#8b5cf6';
+        ctx.fill();
+        ctx.strokeStyle = '#c4b5fd';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+
+      // Draw Center Astronaut Habitat Module (Protected Zone)
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 22, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Habitat Core Icon
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '9px "JetBrains Mono"';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('HAB', centerX, centerY);
+
+      // Particle Simulation & Lorentz Deflection
+      if (state.particles.length < 32 && Math.random() > 0.4) {
+        state.particles.push(spawnParticle());
+      }
+
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+
+        // Store trail
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > 8) p.trail.shift();
+
+        // Check distance to center
+        const dx = p.x - centerX;
+        const dy = p.y - centerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Lorentz Deflection Calculation: F_lorentz = q (v x B)
+        // Deflects outward tangentially away from coils
+        if (dist < shieldRadius && dist > 15) {
+          const bEff = (state.bFieldTesla / 5.8) * 0.9;
+          const deflForce = (p.charge * bEff) / (state.ionEnergy * 1.2);
+
+          // Force normal to velocity
+          const nx = -dy / dist;
+          const ny = dx / dist;
+
+          p.vx += nx * deflForce;
+          p.vy += ny * deflForce;
+          p.deflected = true;
+        }
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Render particle trail
+        ctx.beginPath();
+        ctx.strokeStyle = p.deflected ? 'rgba(56, 189, 248, 0.4)' : 'rgba(244, 63, 94, 0.3)';
+        ctx.lineWidth = 1.5;
+        for (let t = 0; t < p.trail.length; t++) {
+          if (t === 0) ctx.moveTo(p.trail[t].x, p.trail[t].y);
+          else ctx.lineTo(p.trail[t].x, p.trail[t].y);
+        }
+        ctx.stroke();
+
+        // Draw particle head
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.deflected ? 2.5 : 2.0, 0, Math.PI * 2);
+        ctx.fillStyle = p.deflected ? '#38bdf8' : '#f43f5e';
+        ctx.fill();
+
+        // Despawn if out of bounds
+        if (p.x < -20 || p.x > w + 20 || p.y > h + 20) {
+          state.particles.splice(i, 1);
+        }
+      }
+
+      // Increment animation tick
+      state.tickCount++;
+      animationFrameId = requestAnimationFrame(renderSimulationCanvas);
+    }
+
+    // Launch Canvas Animation
+    animationFrameId = requestAnimationFrame(renderSimulationCanvas);
+
+    /* =====================================================================
+       4. CHART.JS CONFIGURATION: PHASE-SPACE (F, \Phi) & TIME SERIES
+       ===================================================================== */
+    
+    // --- Chart 1: Phase Space Scatter & Hysteresis Envelope ---
+    const ctxPhase = document.getElementById('phaseSpaceChart').getContext('2d');
+
+    // Nominal baseline curve data points
+    const nominalBaselinePoints = [];
+    for (let f = 10; f <= 85; f += 2.5) {
+      // Linear elastic relationship \Phi = L * I, F proportional to I^2 => \Phi ~ sqrt(F)
+      const phi = 4.4 * Math.sqrt(f);
+      nominalBaselinePoints.push({ x: f, y: phi });
+    }
+
+    // Hazard boundary corridor: High force with lagging/dilated flux
+    const hazardThresholdPoints = [
+      { x: 74, y: 0 },
+      { x: 74, y: 55 }
+    ];
+
+    const phaseTrajectoryData = [];
+
+    const phaseSpaceChart = new Chart(ctxPhase, {
+      type: 'scatter',
+      data: {
+        datasets: [
+          {
+            label: 'Nominal Elastic Corridor',
+            data: nominalBaselinePoints,
+            showLine: true,
+            borderColor: '#10b981',
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.2
+          },
+          {
+            label: 'Truss Critical Buckling Yield (F_crit)',
+            data: hazardThresholdPoints,
+            showLine: true,
+            borderColor: '#ef4444',
+            borderWidth: 2,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: {
+              target: { value: 90 },
+              above: 'rgba(239, 68, 68, 0.12)'
+            }
+          },
+          {
+            label: 'Live (F, \Phi) Sentinel Trajectory',
+            data: phaseTrajectoryData,
+            showLine: true,
+            borderColor: '#38bdf8',
+            backgroundColor: '#38bdf8',
+            borderWidth: 2.5,
+            pointRadius: (context) => {
+              // Highlight the most recent head point
+              const index = context.dataIndex;
+              const count = context.dataset.data.length;
+              return index === count - 1 ? 6 : 2;
+            },
+            pointBackgroundColor: (context) => {
+              const index = context.dataIndex;
+              const count = context.dataset.data.length;
+              return index === count - 1 ? '#ffffff' : '#38bdf8';
+            }
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: {
+            type: 'linear',
+            position: 'bottom',
+            min: 10,
+            max: 90,
+            title: {
+              display: true,
+              text: 'Lorentz Mechanical Force F (kN)',
+              color: '#94a3b8',
+              font: { family: 'JetBrains Mono', size: 10 }
+            },
+            grid: { color: 'rgba(51, 65, 85, 0.4)' },
+            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 9 } }
+          },
+          y: {
+            min: 10,
+            max: 50,
+            title: {
+              display: true,
+              text: 'Mutual Magnetic Flux Φ (Wb)',
+              color: '#94a3b8',
+              font: { family: 'JetBrains Mono', size: 10 }
+            },
+            grid: { color: 'rgba(51, 65, 85, 0.4)' },
+            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 9 } }
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              color: '#cbd5e1',
+              font: { family: 'JetBrains Mono', size: 10 },
+              boxWidth: 12
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `F: ${ctx.parsed.x.toFixed(1)} kN, Φ: ${ctx.parsed.y.toFixed(1)} Wb`
+            }
+          }
+        }
+      }
+    });
+
+    // --- Chart 2: Telemetry Time Series (Strain vs Flux Rate) ---
+    const ctxTime = document.getElementById('timeSeriesChart').getContext('2d');
+    const timeLabels = Array(40).fill('');
+    const strainTimeSeries = Array(40).fill(1420);
+    const fluxRateTimeSeries = Array(40).fill(1.2);
+    const yieldLineSeries = Array(40).fill(1850);
+
+    const timeSeriesChart = new Chart(ctxTime, {
+      type: 'line',
+      data: {
+        labels: timeLabels,
+        datasets: [
+          {
+            label: 'Truss FBG Strain ε (με)',
+            data: strainTimeSeries,
+            borderColor: '#38bdf8',
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.3,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Flux Linkage Rate dΦ/dt (Wb/s)',
+            data: fluxRateTimeSeries,
+            borderColor: '#a78bfa',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.3,
+            yAxisID: 'y1'
+          },
+          {
+            label: 'Truss Micro-Yield Limit (1850 με)',
+            data: yieldLineSeries,
+            borderColor: '#f43f5e',
+            borderWidth: 1.5,
+            borderDash: [5, 4],
+            pointRadius: 0,
+            yAxisID: 'y'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: {
+            grid: { color: 'rgba(51, 65, 85, 0.3)' },
+            ticks: { display: false }
+          },
+          y: {
+            type: 'linear',
+            position: 'left',
+            min: 400,
+            max: 2200,
+            grid: { color: 'rgba(51, 65, 85, 0.3)' },
+            ticks: { color: '#38bdf8', font: { family: 'JetBrains Mono', size: 9 } },
+            title: {
+              display: true,
+              text: 'FBG Strain (με)',
+              color: '#38bdf8',
+              font: { family: 'JetBrains Mono', size: 10 }
+            }
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            min: -2,
+            max: 6,
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#a78bfa', font: { family: 'JetBrains Mono', size: 9 } },
+            title: {
+              display: true,
+              text: 'dΦ/dt (Wb/s)',
+              color: '#a78bfa',
+              font: { family: 'JetBrains Mono', size: 10 }
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+
+    /* =====================================================================
+       5. CONTINUOUS PHYSICS & SENTINEL OBSERVER UPDATE LOOP
+       ===================================================================== */
+    function updatePhysicsEngine() {
+      // 1. Compute magnetic field and flux linkage from excitation current
+      const current = state.coilCurrent;
+      state.bFieldTesla = (current / 1250) * 5.8;
+      
+      // Theoretical nominal flux linkage: \Phi = L * I
+      const nominalFlux = 34.8 * (current / 1250);
+      
+      // Lorentz force F is proportional to I^2 (mutual repulsion)
+      // Modulated by structural truss degradation
+      const stiffnessFactor = state.trussStiffness / 100;
+      let calculatedForce = 62.4 * Math.pow(current / 1250, 1.85) / Math.sqrt(stiffnessFactor);
+
+      // If micro-plastic creep has occurred, introduce phase lag into flux
+      if (state.plasticDeflection > 0) {
+        state.hysteresisArea = Math.min(0.28, 0.021 + state.plasticDeflection * 1.8);
+      } else {
+        state.hysteresisArea = 0.021 + 0.005 * Math.sin(state.tickCount * 0.1);
+      }
+
+      // Add dynamic oscillation representing structural vibrations
+      const structuralOscillation = Math.sin(state.tickCount * 0.2) * (2.2 + state.plasticDeflection * 8);
+      state.lorentzForceKn = calculatedForce + structuralOscillation;
+      
+      // Non-linear hysteresis displacement affects flux feedback
+      state.mutualFluxWb = nominalFlux - (state.plasticDeflection * 9.5) + Math.cos(state.tickCount * 0.2) * 0.8;
+
+      // Compute fiber strain in microstrains (με)
+      const nominalStrain = (state.lorentzForceKn / 62.4) * 1420;
+      state.trussStrainUe = nominalStrain + (state.plasticDeflection * 600);
+
+      // 2. CLOSED-LOOP SENTINEL OBSERVER LOGIC
+      const yieldThreshold = 74.0; // kN
+      const hysteresisCriticalLimit = state.controlLaw === 'conservative' ? 0.075 : 0.14;
+
+      const isExceeding = state.lorentzForceKn > yieldThreshold || state.hysteresisArea > hysteresisCriticalLimit;
+
+      if (isExceeding && state.autoSentinel) {
+        // Trigger automated de-ramp safeguard
+        state.derampTriggered = true;
+        // Ramp down current automatically by 80 A per step
+        state.coilCurrent = Math.max(800, state.coilCurrent - 55);
+        document.getElementById('sliderCurrent').value = state.coilCurrent;
+        document.getElementById('sliderCurrentVal').innerText = `${state.coilCurrent} A`;
+
+        // Plastic deflection recovery
+        state.plasticDeflection = Math.max(0, state.plasticDeflection - 0.004);
+      }
+
+      // Update UI Telemetry HUD elements
+      updateHUDTelemetry(isExceeding);
+
+      // Append state to Phase-Space trajectory history
+      phaseTrajectoryData.push({ x: state.lorentzForceKn, y: state.mutualFluxWb });
+      if (phaseTrajectoryData.length > 28) {
+        phaseTrajectoryData.shift();
+      }
+
+      // Update time series buffer
+      strainTimeSeries.push(state.trussStrainUe);
+      strainTimeSeries.shift();
+
+      const dFlux = (Math.cos(state.tickCount * 0.2) * 1.8) + (state.derampTriggered ? -1.5 : 0.4);
+      fluxRateTimeSeries.push(dFlux);
+      fluxRateTimeSeries.shift();
+
+      // Render chart updates
+      phaseSpaceChart.update('none');
+      timeSeriesChart.update('none');
+    }
+
+    // Run physics solver loop every 60ms
+    setInterval(updatePhysicsEngine, 60);
+
+    /* =====================================================================
+       6. TELEMETRY HUD SYNCHRONIZATION & ALERTS
+       ===================================================================== */
+    function updateHUDTelemetry(isExceeding) {
+      document.getElementById('metricForce').innerText = `${state.lorentzForceKn.toFixed(1)} kN`;
+      document.getElementById('metricFlux').innerText = `${state.mutualFluxWb.toFixed(1)} Wb`;
+      
+      const margin = (74.0 - state.lorentzForceKn);
+      const marginEl = document.getElementById('metricYieldDist');
+      if (margin > 0) {
+        marginEl.innerText = `+${margin.toFixed(1)} kN`;
+        marginEl.className = 'text-emerald-400 font-semibold text-sm';
+      } else {
+        marginEl.innerText = `${margin.toFixed(1)} kN (YIELD)`;
+        marginEl.className = 'text-rose-500 font-bold text-sm animate-pulse';
+      }
+
+      document.getElementById('canvasStrainVal').innerText = `${Math.round(state.trussStrainUe)} με`;
+      document.getElementById('canvasBField').innerText = `${state.bFieldTesla.toFixed(1)} Tesla`;
+      document.getElementById('canvasDeflAngle').innerText = `${(32 + state.bFieldTesla * 2.8).toFixed(1)}°`;
+      document.getElementById('hysteresisScoreVal').innerText = `${state.hysteresisArea.toFixed(3)} AU`;
+
+      const bucklingRatio = (74.0 / Math.max(1, state.lorentzForceKn)).toFixed(2);
+      document.getElementById('trussMargin').innerText = `${bucklingRatio}x Yield`;
+
+      // Status Badges & Banner Alerts
+      const stateBadge = document.getElementById('systemStateBadge');
+      const phaseTag = document.getElementById('phaseStateTag');
+      const banner = document.getElementById('alertBanner');
+      const bannerText = document.getElementById('alertBannerText');
+
+      if (state.derampTriggered) {
+        stateBadge.innerHTML = `<i data-lucide="alert-octagon" class="w-3.5 h-3.5 text-rose-400"></i> SENTINEL AUTONOMOUS DE-RAMP`;
+        stateBadge.className = 'text-rose-400 font-bold flex items-center gap-1 animate-pulse';
+
+        phaseTag.innerText = 'CRITICAL HYSTERESIS DILATION';
+        phaseTag.className = 'text-xs px-2.5 py-1 rounded bg-rose-950/80 border border-rose-500/50 font-mono-code text-rose-300';
+
+        banner.className = 'p-3.5 rounded-xl border border-rose-500/50 bg-rose-950/30 flex flex-wrap items-center justify-between gap-3 text-xs font-mono-code transition-all duration-300 glow-rose';
+        bannerText.innerHTML = `<strong class="text-rose-400">HAZARD MITIGATION:</strong> Non-linear $(F, \Phi)$ loop hysteresis detected. Truss micro-buckling imminent. Sentinel is autonomously de-ramping excitation field to preserve structural integrity.`;
+      } else if (state.lorentzForceKn > 65.0) {
+        stateBadge.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i> STRAIN WARNING`;
+        stateBadge.className = 'text-amber-400 font-semibold flex items-center gap-1';
+
+        phaseTag.innerText = 'HIGH LOAD CORRIDOR';
+        phaseTag.className = 'text-xs px-2.5 py-1 rounded bg-amber-950/80 border border-amber-500/50 font-mono-code text-amber-300';
+
+        banner.className = 'p-3.5 rounded-xl border border-amber-500/40 bg-amber-950/20 flex flex-wrap items-center justify-between gap-3 text-xs font-mono-code transition-all duration-300';
+        bannerText.innerHTML = `<strong class="text-amber-400">CAUTION:</strong> Inter-coil mutual repulsion force approaching 90% of Euler critical margin. Optical FBGs reporting elevated shear strain.`;
+      } else {
+        stateBadge.innerHTML = `<i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> NOMINAL ELASTIC`;
+        stateBadge.className = 'text-emerald-400 font-semibold flex items-center gap-1';
+
+        phaseTag.innerText = 'ELASTIC CORRIDOR';
+        phaseTag.className = 'text-xs px-2.5 py-1 rounded bg-slate-800/80 border border-slate-700 font-mono-code text-cyan-300';
+
+        banner.className = 'p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-950/20 flex flex-wrap items-center justify-between gap-3 text-xs font-mono-code transition-all duration-300';
+        bannerText.innerHTML = `Closed-loop Sentinel is actively monitoring Fiber Bragg Grating (FBG) optical strain arrays against non-linear mutual coil inductance.`;
+      }
+      lucide.createIcons();
+    }
+
+    /* =====================================================================
+       7. INTERACTIVE USER CONTROLS & MANUAL FAULT INJECTIONS
+       ===================================================================== */
+    // Slider 1: Coil Current
+    const sliderCurrent = document.getElementById('sliderCurrent');
+    sliderCurrent.addEventListener('input', (e) => {
+      state.coilCurrent = parseFloat(e.target.value);
+      document.getElementById('sliderCurrentVal').innerText = `${state.coilCurrent} A`;
+      state.derampTriggered = false;
+    });
+
+    // Slider 2: Solar Storm Intensity
+    const sliderStorm = document.getElementById('sliderStorm');
+    sliderStorm.addEventListener('input', (e) => {
+      state.ionEnergy = parseFloat(e.target.value);
+      document.getElementById('sliderStormVal').innerText = `${state.ionEnergy.toFixed(1)} GeV/nucleon`;
+      document.getElementById('canvasGcrCount').innerText = `${Math.round(state.ionEnergy * 85)} GeV/n`;
+    });
+
+    // Slider 3: Truss Rigidity
+    const sliderStiffness = document.getElementById('sliderStiffness');
+    sliderStiffness.addEventListener('input', (e) => {
+      state.trussStiffness = parseFloat(e.target.value);
+      document.getElementById('sliderStiffnessVal').innerText = `${state.trussStiffness}%`;
+    });
+
+    // Injection Action 1: GCR Flare Surge
+    function injectGCRFlare() {
+      state.ionEnergy = 4.2;
+      document.getElementById('sliderStorm').value = 4.2;
+      document.getElementById('sliderStormVal').innerText = '4.2 GeV/nucleon';
+      document.getElementById('canvasGcrCount').innerText = '360 GeV/n';
+
+      // Automatically ramp current to maximum to simulate manual fight-back
+      state.coilCurrent = 1950;
+      document.getElementById('sliderCurrent').value = 1950;
+      document.getElementById('sliderCurrentVal').innerText = '1,950 A';
+
+      // Spawn burst of incident particles
+      for (let i = 0; i < 20; i++) {
+        state.particles.push(spawnParticle());
+      }
+    }
+
+    // Injection Action 2: Trigger Structural Creep / Micro-slip
+    function triggerStructuralCreep() {
+      state.plasticDeflection = 0.12;
+      state.trussStiffness = 65;
+      document.getElementById('sliderStiffness').value = 65;
+      document.getElementById('sliderStiffnessVal').innerText = '65% (Warped)';
+    }
+
+    // Action 3: Reset Nominal
+    function resetSimulation() {
+      state.coilCurrent = 1250;
+      state.ionEnergy = 1.4;
+      state.trussStiffness = 100;
+      state.plasticDeflection = 0.0;
+      state.derampTriggered = false;
+
+      sliderCurrent.value = 1250;
+      sliderStorm.value = 1.4;
+      sliderStiffness.value = 100;
+
+      document.getElementById('sliderCurrentVal').innerText = '1,250 A';
+      document.getElementById('sliderStormVal').innerText = '1.4 GeV/nucleon';
+      document.getElementById('sliderStiffnessVal').innerText = '100% (Nominal Ti-CFRP)';
+      document.getElementById('canvasGcrCount').innerText = '120 GeV/n';
+    }
+
+    // Action 4: Toggle Sentinel Auto-Override
+    function toggleAutoSentinel() {
+      state.autoSentinel = !state.autoSentinel;
+      const statusText = document.getElementById('autoSentinelStatusText');
+      const toggleBtn = document.getElementById('autoSentinelToggleBtn');
+
+      if (state.autoSentinel) {
+        statusText.innerText = 'ON';
+        statusText.className = 'font-bold text-cyan-400';
+        toggleBtn.className = 'px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 rounded-lg flex items-center gap-1.5 transition font-medium';
+      } else {
+        statusText.innerText = 'OFF (OVERRIDE)';
+        statusText.className = 'font-bold text-rose-400';
+        toggleBtn.className = 'px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 rounded-lg flex items-center gap-1.5 transition font-medium';
+      }
+    }
+
+    // Action 5: Change Control Law
+    function setControlLaw(law) {
+      state.controlLaw = law;
+      const btnCons = document.getElementById('btnLawCons');
+      const btnAdap = document.getElementById('btnLawAdap');
+
+      if (law === 'conservative') {
+        btnCons.className = 'p-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 font-mono-code text-left';
+        btnAdap.className = 'p-2 rounded-lg border border-slate-800 bg-slate-900/80 text-slate-400 font-mono-code text-left';
+      } else {
+        btnAdap.className = 'p-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 font-mono-code text-left';
+        btnCons.className = 'p-2 rounded-lg border border-slate-800 bg-slate-900/80 text-slate-400 font-mono-code text-left';
+      }
+    }
+  </script>
+</body>
+</html>
